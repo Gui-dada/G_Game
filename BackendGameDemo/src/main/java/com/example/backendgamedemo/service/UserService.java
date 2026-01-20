@@ -4,11 +4,14 @@ import com.example.backendgamedemo.dao.UserDao;
 import com.example.backendgamedemo.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Service
@@ -17,7 +20,9 @@ public class UserService {
     @Autowired
     private UserDao userDao;
 
-    private static final String JWT_SECRET ="demo game";// 密钥 可使用更健硕的密钥
+    public String userId;
+
+    private static final String JWT_SECRET = "demo_game_demo_game_demo_game_demo_game";// 密钥 可使用更健硕的密钥
     //密码加密（使用 BCrypt）
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -44,15 +49,20 @@ public class UserService {
     // 用户认证
     public String authenticateUser(String username, String password) {
         //从数据库查找用户
-        User user=userDao.findUserByUsername(username);
+        User user = userDao.findUserByUsername(username);
 
         //验证用户密码
-        if(user!=null &&user.getPassword().equals(password)){
+
+        if (user != null && user.getPassword().equals(password)) {
+            userId = user.getUserId().toString();
             //生成 JWT Token
             return generateJwtToken(user);
         }
+
+
         return null;
     }
+
     // 生成 JWT Token
     private String generateJwtToken(User user) {
         Date now = new Date();
@@ -62,7 +72,7 @@ public class UserService {
                 .setSubject(user.getUserId().toString())  // 设置用户ID为 Token 的主题
                 .setIssuedAt(now)  // 设置当前时间为创建时间
                 .setExpiration(expiryDate)  // 设置过期时间
-                .signWith(SignatureAlgorithm.HS512, JWT_SECRET)  // 使用密钥进行签名
+                .signWith(Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8)))  // 使用密钥进行签名
                 .compact();
     }
 
@@ -70,7 +80,7 @@ public class UserService {
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()  // 使用 `parserBuilder()` 来解析 Token
-                    .setSigningKey(JWT_SECRET)  // 设置签名密钥
+                    .setSigningKey(Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8)))  // 设置签名密钥
                     .build()
                     .parseClaimsJws(token);  // 解析 Token
             return true;
@@ -82,11 +92,12 @@ public class UserService {
     // 从 Token 中提取用户名
     public String getUsernameFromToken(String token) {
         Claims claims = Jwts.parserBuilder()  // 使用 `parserBuilder()`
-                .setSigningKey(JWT_SECRET)  // 设置签名密钥
+                .setSigningKey(Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8)))  // 设置签名密钥
                 .build()
                 .parseClaimsJws(token)
                 .getBody();  // 获取 Token 的内容（即 Claims）
 
         return claims.getSubject();  // 返回用户名
     }
+
 }

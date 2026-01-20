@@ -15,6 +15,15 @@ enum class EGameState : uint8
 	EPause			UMETA(DisplayName = "Pause"),
 };
 
+UENUM(BlueprintType)
+enum class EPlayerState : uint8
+{
+	ENONE			UMETA(DisplayName = "None"),
+	EAlive			UMETA(DisplayName = "Alive"),
+	EDead			UMETA(DisplayName = "Dead"),
+	ERespawn		UMETA(DisplayName = "Respawn"),
+};
+
 
 /**
  * 

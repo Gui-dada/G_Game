@@ -24,19 +24,15 @@ class UNREALGAMEDEMO_API AG_GameModeBase : public AGameModeBase
 	
 
 public:
+	virtual void BeginPlay() override;
+
+public:
 	AG_GameModeBase();
-
-	UFUNCTION(BlueprintCallable, Category = "G_Game|Pawn")
-	const UG_PawnData* GetPawnDataForController(const AController* InController) const;
-
 
 	/// ~ AGameModeBase interface
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)override;
 
 protected:
-	void HanlePlayerLoginInfo();
-	bool TryDedicatedServerLogin(AController* NewPlayer, const FUniqueNetIdRepl& UniqueId, const FString& Options);
-
-	void OnSpringLoginResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, AController* NewPlayer);
+	void HanlePlayerLogin();
 	
 };
