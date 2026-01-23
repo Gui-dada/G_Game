@@ -20,7 +20,8 @@ public class UnrealGameDemo : ModuleRules
             "Json",
             "JsonUtilities",
             "OnlineSubsystem",
-            "OnlineSubsystemUtils"
+            "OnlineSubsystemUtils",
+            "MediaAssets",
         });
         
 
@@ -32,6 +33,9 @@ public class UnrealGameDemo : ModuleRules
             "UnrealGameDemo/UI/Widgets",
             "UnrealGameDemo/GameModes",
             "UnrealGameDemo/Types",
+            "UnrealGameDemo/GameInstances",
+            "UnrealGameDemo/GameInstances/GameInstanceSubsystems",
+            "UnrealGameDemo/GameModes/SubGameModes"
             //"UnrealGameDemo/Player",
         });
         PublicIncludePaths.Add(ModuleDirectory);
