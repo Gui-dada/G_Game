@@ -13,5 +13,4 @@ UCLASS()
 class UNREALGAMEDEMO_API UG_CommonUserWidget : public UCommonUserWidget
 {
 	GENERATED_BODY()
-	
 };

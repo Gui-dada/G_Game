@@ -25,6 +25,8 @@ public:
 	void SetInputModeToUIOnly(APlayerController* PlayerController);
 	void SetInputModeToGameOnly(APlayerController* PlayerController);
 
+	UG_CommonUserWidget* GetCurrentUIWidget() const { return CurrentUIWidget; }
+
 private:
 	UG_CommonUserWidget* CurrentUIWidget;
 };

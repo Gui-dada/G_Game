@@ -21,6 +21,9 @@ public:
 
 	void PlayVideoAndShowUI(UUISubsystem* UISubsystem);
 	// 视频播放结束回调函数
+
+	UFUNCTION()
+	void OnVideoBegin(FString OpenedUrl);
 	UFUNCTION()
 	void OnVideoEnd();
 

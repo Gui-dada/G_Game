@@ -5,8 +5,6 @@
 #include "UI/GdHUD.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
-#include "Manager/LoginManager.h"
-#include "Manager/UIManager.h"
 
 
 //void AG_GameModeBase::BeginPlay()

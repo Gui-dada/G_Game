@@ -6,15 +6,13 @@
 
 void UUISubsystem::ShowUI(FString Path)
 {
-
-	UG_CommonUserWidget* UIWidget = CreateWidget<UG_CommonUserWidget>(GetWorld(), LoadClass<UG_CommonUserWidget>(nullptr, *Path));
-	if (UIWidget)
+	// 先隐藏当前UI
+	HideUI();
+	CurrentUIWidget = CreateWidget<UG_CommonUserWidget>(GetWorld(), LoadClass<UG_CommonUserWidget>(nullptr, *Path));
+	if (CurrentUIWidget)
 	{
 		UE_LOG(LogTemp, Log, TEXT("UIWidget create sucessful!"));
-		UIWidget->AddToViewport();
-
-		//在 HideUI 方法中使用 CurrentUIWidget
-		CurrentUIWidget = UIWidget;
+		CurrentUIWidget->AddToViewport();
 
 		// 设置UI的输入模式为UIOnly
 		APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
