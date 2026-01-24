@@ -27,4 +27,13 @@ public:
 private:
 	// 发送登录请求
 	bool SendLoginRequest(const FString& Username, const FString& Password, APlayerController* PlayerController);
+
+	void SaveLoginDataToConfig(const FString& Token, const FString& UserId, const FString& Username);
+
+	void NotifyLoginSuccess(const FString& Token, const FString& UserId,
+		const FString& Username, APlayerController* PlayerController);
+	void NotifyLoginFailed(const FString& ErrorMessage, APlayerController* PlayerController);
+
+	// 清除无效的登录数据
+	void ClearInvalidLoginData();
 };

@@ -29,4 +29,6 @@ public:
 
 private:
 	UG_CommonUserWidget* CurrentUIWidget;
+
+	bool isVedioPlaying() const;
 };

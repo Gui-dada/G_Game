@@ -3,11 +3,15 @@
 
 #include "UISubsystem.h"
 #include "G_CommonUserWidget.h"
+#include <MediaPlayer.h>
 
 void UUISubsystem::ShowUI(FString Path)
 {
-	// 先隐藏当前UI
-	HideUI();
+	// 当前有视频播放，禁止切换UI
+	if (isVedioPlaying()) {
+		UE_LOG(LogTemp, Warning, TEXT("Video is playing, cannot switch UI."));
+		return;
+	}
 	CurrentUIWidget = CreateWidget<UG_CommonUserWidget>(GetWorld(), LoadClass<UG_CommonUserWidget>(nullptr, *Path));
 	if (CurrentUIWidget)
 	{
@@ -19,7 +23,6 @@ void UUISubsystem::ShowUI(FString Path)
 		if (PlayerController) {
 			SetInputModeToUIOnly(PlayerController);
 		}
-		
 	}
 	else
 	{
@@ -66,4 +69,36 @@ void UUISubsystem::SetInputModeToGameOnly(APlayerController* PlayerController)
 		PlayerController->SetInputMode(InputMode); // 设置为游戏输入模式
 		PlayerController->bShowMouseCursor = false; // 隐藏鼠标光标
 	}
+}
+
+
+bool UUISubsystem::isVedioPlaying() const
+{
+	if (!CurrentUIWidget) return false;
+
+	//使用反射查找MediaPlayer变量
+	FProperty* MediaPlayerProp = CurrentUIWidget->GetClass()->FindPropertyByName(TEXT("MediaPlayer"));
+	//if (!MediaPlayerProp)
+	//{
+	//	// 尝试其他常见名称
+	//	MediaPlayerProp = CurrentUIWidget->GetClass()->FindPropertyByName(TEXT("VideoPlayer"));
+	//}
+
+	if (MediaPlayerProp && MediaPlayerProp->IsA<FObjectProperty>())
+	{
+		FObjectProperty* ObjectProp = CastField<FObjectProperty>(MediaPlayerProp);
+
+		// 确保是MediaPlayer类型
+		if (ObjectProp->PropertyClass->IsChildOf(UMediaPlayer::StaticClass()))
+		{
+			// 获取变量值
+			UObject* MediaPlayerObj = ObjectProp->GetObjectPropertyValue_InContainer(CurrentUIWidget);
+			if (UMediaPlayer* MediaPlayer = Cast<UMediaPlayer>(MediaPlayerObj))
+			{
+				return MediaPlayer->IsPlaying();
+			}
+		}
+	}
+
+	return false;
 }

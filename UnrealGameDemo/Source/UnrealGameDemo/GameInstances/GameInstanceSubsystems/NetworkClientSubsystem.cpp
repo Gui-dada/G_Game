@@ -2,10 +2,15 @@
 
 
 #include "NetworkClientSubsystem.h"
+#include "ConfigSubsystem.h"
+#include "LoginSubsystem.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
-#include "Player/G_PlayerController.h"
+#include "Json.h"
+#include "JsonUtilities.h"
+#include "Kismet/GameplayStatics.h"
+#include "G_GameInstance.h"
 
 void UNetworkClientSubsystem::StartLoginRequest(const FString& Username, const FString& Password, APlayerController* PlayerController)
 {
@@ -13,45 +18,114 @@ void UNetworkClientSubsystem::StartLoginRequest(const FString& Username, const F
 	SendLoginRequest(Username, Password, PlayerController);
 }
 
-void UNetworkClientSubsystem::OnLoginResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, APlayerController* PlayerController)
+void UNetworkClientSubsystem::OnLoginResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
+    bool bWasSuccessful, APlayerController* PlayerController)
 {
-	if (!bWasSuccessful || !Response.IsValid())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Login HTTP request failed or no response"));
-		return;
-	}
+    if (!bWasSuccessful || !Response.IsValid())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Login HTTP request failed or no response"));
 
-	int32 ResponseCode = Response->GetResponseCode();
-	FString ResponseStr = Response->GetContentAsString();
+        // 通知登录失败
+        NotifyLoginFailed(TEXT("网络请求失败"), PlayerController);
+        return;
+    }
 
-	if (ResponseCode != 200)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Login failed, HTTP %d: %s"), ResponseCode, *ResponseStr);
-		return;
-	}
+    int32 ResponseCode = Response->GetResponseCode();
+    FString ResponseStr = Response->GetContentAsString();
 
-	// 解析 JSON 响应，期望 { "success": true, "token":"...", "userId":"..." }
-	TSharedPtr<FJsonObject> JsonResponse;
-	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseStr);
-	if (!FJsonSerializer::Deserialize(Reader, JsonResponse) || !JsonResponse.IsValid())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Failed to parse login response JSON"));
-		return;
-	}
+    if (ResponseCode != 200)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Login failed, HTTP %d: %s"), ResponseCode, *ResponseStr);
 
-	bool bSuccess = JsonResponse->GetBoolField(TEXT("success"));
-	FString Message = JsonResponse->GetStringField(TEXT("message"));
-	if (!bSuccess)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Authentication failed: %s"), *Message);
-		return;
-	}
+        // 尝试解析错误信息
+        FString ErrorMessage = TEXT("登录失败");
+        TSharedPtr<FJsonObject> JsonResponse;
+        TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseStr);
 
-	const FString Token = JsonResponse->GetStringField(TEXT("token"));
-	const FString UserId = JsonResponse->GetStringField(TEXT("userId"));
+        if (FJsonSerializer::Deserialize(Reader, JsonResponse) && JsonResponse.IsValid())
+        {
+            if (JsonResponse->HasField(TEXT("message")))
+            {
+                ErrorMessage = JsonResponse->GetStringField(TEXT("message"));
+            }
+        }
 
-	UE_LOG(LogTemp, Log, TEXT("Login successful, userId=%s tokenLen=%d"), *UserId, Token.Len());
+        NotifyLoginFailed(ErrorMessage, PlayerController);
+        return;
+    }
 
+    // 解析 JSON 响应
+    TSharedPtr<FJsonObject> JsonResponse;
+    TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseStr);
+
+    if (!FJsonSerializer::Deserialize(Reader, JsonResponse) || !JsonResponse.IsValid())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Failed to parse login response JSON"));
+        NotifyLoginFailed(TEXT("响应数据格式错误"), PlayerController);
+        return;
+    }
+
+    // 检查登录是否成功
+    bool bSuccess = false;
+    if (JsonResponse->HasField(TEXT("success")))
+    {
+        bSuccess = JsonResponse->GetBoolField(TEXT("success"));
+    }
+    else if (JsonResponse->HasField(TEXT("code")))
+    {
+        int32 Code = JsonResponse->GetIntegerField(TEXT("code"));
+        bSuccess = (Code == 200 || Code == 0);
+    }
+
+    if (!bSuccess)
+    {
+        FString ErrorMessage = JsonResponse->HasField(TEXT("message"))
+            ? JsonResponse->GetStringField(TEXT("message"))
+            : TEXT("登录失败");
+
+        NotifyLoginFailed(ErrorMessage, PlayerController);
+        return;
+    }
+
+    // 提取Token和用户信息
+    FString Token = TEXT("");
+    FString UserId = TEXT("");
+    FString Username = TEXT("");
+
+    if (JsonResponse->HasField(TEXT("token")))
+    {
+        Token = JsonResponse->GetStringField(TEXT("token"));
+    }
+
+    if (JsonResponse->HasField(TEXT("userId")) || JsonResponse->HasField(TEXT("id")))
+    {
+        UserId = JsonResponse->HasField(TEXT("userId"))
+            ? JsonResponse->GetStringField(TEXT("userId"))
+            : JsonResponse->GetStringField(TEXT("id"));
+    }
+
+    if (JsonResponse->HasField(TEXT("username")) || JsonResponse->HasField(TEXT("name")))
+    {
+        Username = JsonResponse->HasField(TEXT("username"))
+            ? JsonResponse->GetStringField(TEXT("username"))
+            : JsonResponse->GetStringField(TEXT("name"));
+    }
+
+    // 如果Token为空，登录失败
+    if (Token.IsEmpty())
+    {
+        NotifyLoginFailed(TEXT("未获取到Token"), PlayerController);
+        return;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Login successful, userId=%s, username=%s, tokenLen=%d"),
+        *UserId, *Username, Token.Len());
+
+    // 保存到本地配置
+    SaveLoginDataToConfig(Token, UserId, Username);
+
+    // 通知登录成功
+    NotifyLoginSuccess(Token, UserId, Username, PlayerController);
 }
 
 bool UNetworkClientSubsystem::SendLoginRequest(const FString& Username, const FString& Password, APlayerController* PlayerController)
@@ -87,4 +161,67 @@ bool UNetworkClientSubsystem::SendLoginRequest(const FString& Username, const FS
 
 	// 请求已发出（结果在回调处理）
 	return true;
+}
+// 保存登录数据到配置
+void UNetworkClientSubsystem::SaveLoginDataToConfig(const FString& Token, const FString& UserId, const FString& Username)
+{
+    UG_GameInstance* GameInstance = Cast<UG_GameInstance>(GetGameInstance());
+    if (!GameInstance) return;
+
+    UConfigSubsystem* ConfigSystem =GameInstance->GetSubsystem<UConfigSubsystem>();
+    if (ConfigSystem)
+    {
+        // 保存7天有效期，记住登录状态
+        ConfigSystem->SaveLoginData(Token, UserId, Username, 7, true);
+        UE_LOG(LogTemp, Log, TEXT("登录数据已保存到本地配置"));
+    }
+}
+
+// 通知登录成功
+void UNetworkClientSubsystem::NotifyLoginSuccess(const FString& Token, const FString& UserId,
+    const FString& Username, APlayerController* PlayerController)
+{
+    // 1. 通知LoginSubsystem
+    UGameInstance* GameInstance = GetGameInstance();
+    if (GameInstance)
+    {
+        ULoginSubsystem* LoginSystem = GameInstance->GetSubsystem<ULoginSubsystem>();
+        if (LoginSystem)
+        {
+            LoginSystem->OnLoginSuccess(Token, UserId, Username, PlayerController);
+        }
+    }
+
+    // 2. 这里可以添加其他处理，比如UI通知等
+}
+void UNetworkClientSubsystem::NotifyLoginFailed(const FString& ErrorMessage, APlayerController* PlayerController)
+{
+    // 1. 通知LoginSubsystem
+    UGameInstance* GameInstance = GetGameInstance();
+    if (GameInstance)
+    {
+        ULoginSubsystem* LoginSystem = GameInstance->GetSubsystem<ULoginSubsystem>();
+        if (LoginSystem)
+        {
+            LoginSystem->OnLoginFailed(ErrorMessage, PlayerController);
+        }
+    }
+
+    // 2. 清除本地无效的登录数据（如果有）
+    ClearInvalidLoginData();
+}
+
+// 清除无效的登录数据
+void UNetworkClientSubsystem::ClearInvalidLoginData()
+{
+    UGameInstance* GameInstance = Cast<UG_GameInstance>(GetGameInstance());
+    if (!GameInstance) return;
+
+    UConfigSubsystem* ConfigSystem = GameInstance->GetSubsystem<UConfigSubsystem>();
+    if (ConfigSystem && !ConfigSystem->HasValidLoginData())
+    {
+        // 如果Token无效，清除保存的数据
+        ConfigSystem->ClearLoginData();
+        UE_LOG(LogTemp, Log, TEXT("已清除无效的登录数据"));
+    }
 }
