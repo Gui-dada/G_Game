@@ -21,4 +21,7 @@ public:
 
 	void StartLoginFlow();
 
+	//UFUNCTION()
+	//void HandleVideoEnd(bool bSuccess);
+
 };

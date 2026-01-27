@@ -18,6 +18,7 @@ void ULoginSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void ULoginSubsystem::StartLoginProcess(APlayerController* PlayerController)
 {
+	//UISubsystem->ShowUI(TEXT("/Game/UI/LoginWidgets/WB_Start.WB_Start_C"));
 	if (!PlayerController)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[LoginSubsystem] 玩家控制器为空"));
@@ -29,12 +30,8 @@ void ULoginSubsystem::StartLoginProcess(APlayerController* PlayerController)
 
 	UE_LOG(LogTemp, Log, TEXT("[LoginSubsystem] 开始登录流程"));
 
-	// 先尝试自动登录
-	if (!TryAutoLogin(PlayerController))
-	{
-		// 自动登录失败，显示登录界面
-		ShowLoginUI(PlayerController);
-	}
+	ShowLoginLoading(PlayerController);
+
 }
 
 bool ULoginSubsystem::TryAutoLogin(APlayerController* PlayerController)
@@ -62,20 +59,9 @@ bool ULoginSubsystem::TryAutoLogin(APlayerController* PlayerController)
 		ShowLoginLoading(PlayerController, TEXT("自动登录中..."));
 
 		// 模拟网络验证延迟（实际应该调用网络验证）
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this, PlayerController, Username]()
-			{
-				UE_LOG(LogTemp, Log, TEXT("[LoginSubsystem] 自动登录成功: %s"), *Username);
 
-				// 切换到主菜单
-				SwitchToMainMenu(PlayerController);
 
-				// 触发成功事件
-				OnLoginSuccessDelegate.Broadcast(Username);
 
-			}, 1.0f, false); // 延迟1秒模拟网络请求
-
-		bIsProcessingLogin = true;
 		return true;
 	}
 
@@ -96,7 +82,7 @@ void ULoginSubsystem::ShowLoginUI(APlayerController* PlayerController)
 	if (UISystem)
 	{
 		// 显示登录UI
-		UISystem->ShowUI(TEXT("/Game/UI/LoginWidget.LoginWidget_C"));
+		UISystem->ShowCommonUI(TEXT("/Game/UI/LoginWidget.LoginWidget_C"));
 	}
 	else
 	{
@@ -287,7 +273,7 @@ void ULoginSubsystem::ShowLoginLoading(APlayerController* PlayerController, cons
 	UUISubsystem* UISystem = GetUISubsystem();
 	if (UISystem)
 	{
-		// UISystem->ShowLoading(Message);
+		UISystem->ShowMediaUI("/Game/UI/LoginWidgets/WB_Start.WB_Start_C");
 	}
 }
 
@@ -320,4 +306,3 @@ UUISubsystem* ULoginSubsystem::GetUISubsystem() const
 	UGameInstance* GameInstance = GetGameInstance();
 	return GameInstance ? GameInstance->GetSubsystem<UUISubsystem>() : nullptr;
 }
-
