@@ -32,7 +32,6 @@ void UUISubsystem::ShowMediaUI(FString Path)
 		UE_LOG(LogTemp, Log, TEXT("MediaWidget create sucessful!"));
 		MediaWidget->AddToViewport();
 
-
 		// 设置UI的输入模式为UIOnly
 		APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 		if (PlayerController) {

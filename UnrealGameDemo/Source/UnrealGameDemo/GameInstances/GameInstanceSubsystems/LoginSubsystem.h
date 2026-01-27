@@ -126,4 +126,12 @@ private:
     
     // 是否正在处理登录
     bool bIsProcessingLogin = false;
+
+private:
+	// ========== 接受登录结果回调 ==========
+
+
+    /**delegate5.定义接收信息的委托方法 */
+    UFUNCTION()
+	void OnStartMediaFinished();
 };

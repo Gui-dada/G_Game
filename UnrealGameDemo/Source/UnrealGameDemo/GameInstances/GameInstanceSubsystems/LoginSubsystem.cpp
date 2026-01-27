@@ -82,7 +82,8 @@ void ULoginSubsystem::ShowLoginUI(APlayerController* PlayerController)
 	if (UISystem)
 	{
 		// 显示登录UI
-		UISystem->ShowCommonUI(TEXT("/Game/UI/LoginWidget.LoginWidget_C"));
+		///Script/UMGEditor.WidgetBlueprint'/Game/UI/LoginWidgets/WB_Login.WB_Login'
+		UISystem->ShowCommonUI(TEXT("/Game/UI/LoginWidgets/WB_Login.WB_Login_C"));
 	}
 	else
 	{
@@ -271,9 +272,15 @@ void ULoginSubsystem::ShowLoginLoading(APlayerController* PlayerController, cons
 {
 	// 通过UISubsystem显示加载界面
 	UUISubsystem* UISystem = GetUISubsystem();
-	if (UISystem)
+	if(!UISystem)
 	{
-		UISystem->ShowMediaUI("/Game/UI/LoginWidgets/WB_Start.WB_Start_C");
+		UE_LOG(LogTemp, Error, TEXT("[LoginSubsystem] 无法获取UISubsystem"));
+		return;
+	}
+	UISystem->ShowMediaUI("/Game/UI/LoginWidgets/WB_Start.WB_Start_C");
+	if (UISystem->MediaWidget != nullptr) {
+		/**delegate4 绑定事件 然后觉得方法 */
+		UISystem->MediaWidget->OnMediaPlayFinished.AddDynamic(this, &ULoginSubsystem::OnStartMediaFinished);
 	}
 }
 
@@ -305,4 +312,17 @@ UUISubsystem* ULoginSubsystem::GetUISubsystem() const
 {
 	UGameInstance* GameInstance = GetGameInstance();
 	return GameInstance ? GameInstance->GetSubsystem<UUISubsystem>() : nullptr;
+}
+
+void ULoginSubsystem::OnStartMediaFinished()
+{
+	UE_LOG(LogTemp, Log, TEXT("[LoginSubsystem] 收到启动视频播放结束回调"));
+	UUISubsystem* UISystem = GetUISubsystem();
+	if (!UISystem)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LoginSubsystem] 无法获取UISubsystem"));
+		return;
+	}
+	UISystem->HideMediaUI();
+	ShowLoginUI(CurrentPlayerController);
 }
