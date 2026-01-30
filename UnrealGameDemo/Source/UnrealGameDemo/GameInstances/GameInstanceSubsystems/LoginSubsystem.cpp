@@ -30,7 +30,10 @@ void ULoginSubsystem::StartLoginProcess(APlayerController* PlayerController)
 
 	UE_LOG(LogTemp, Log, TEXT("[LoginSubsystem] 开始登录流程"));
 
-	ShowLoginLoading(PlayerController);
+	if(!TryAutoLogin(PlayerController))
+	{
+
+	}
 
 }
 
@@ -84,16 +87,6 @@ void ULoginSubsystem::ShowLoginUI(APlayerController* PlayerController)
 		// 显示登录UI
 		///Script/UMGEditor.WidgetBlueprint'/Game/UI/LoginWidgets/WB_Login.WB_Login'
 		UISystem->ShowCommonUI(TEXT("/Game/UI/LoginWidgets/WB_Login.WB_Login_C"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("[LoginSubsystem] 无法获取UISubsystem"));
-
-		// 应急：直接使用默认账号登录
-		GetWorld()->GetTimerManager().SetTimerForNextTick([this, PlayerController]()
-			{
-				ManualLogin(TEXT("admin"), TEXT("admin123"), PlayerController);
-			});
 	}
 }
 
