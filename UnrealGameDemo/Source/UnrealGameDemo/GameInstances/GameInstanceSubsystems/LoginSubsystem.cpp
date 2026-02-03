@@ -29,14 +29,22 @@ void ULoginSubsystem::StartLoginProcess(APlayerController* PlayerController)
 	bIsProcessingLogin = false;
 
 	UE_LOG(LogTemp, Log, TEXT("[LoginSubsystem] 开始登录流程"));
+	// 显示加载界面
+	ShowLoginLoading(PlayerController, TEXT("视频播放中..."));
 
-	if(!TryAutoLogin(PlayerController))
+	if (!TryAutoLogin(PlayerController))
 	{
+		// 自动登录失败，显示登录页面加注册界面
+
+	}
+	else
+	{
+		// 登陆成功 保存用户信息 显示登陆页面
 
 	}
 
 }
-
+   
 bool ULoginSubsystem::TryAutoLogin(APlayerController* PlayerController)
 {
 	if (bIsProcessingLogin) return false;
@@ -58,11 +66,7 @@ bool ULoginSubsystem::TryAutoLogin(APlayerController* PlayerController)
 		FString Username = ConfigSystem->GetCurrentUsername();
 		UE_LOG(LogTemp, Log, TEXT("[LoginSubsystem] 检测到有效登录数据: %s"), *Username);
 
-		// 显示加载界面
-		ShowLoginLoading(PlayerController, TEXT("自动登录中..."));
-
 		// 模拟网络验证延迟（实际应该调用网络验证）
-
 
 
 		return true;
@@ -270,6 +274,7 @@ void ULoginSubsystem::ShowLoginLoading(APlayerController* PlayerController, cons
 		UE_LOG(LogTemp, Error, TEXT("[LoginSubsystem] 无法获取UISubsystem"));
 		return;
 	}
+	////Script/UMGEditor.WidgetBlueprint'/Game/UI/CommonUI/UserWidgets/WB_Loading.WB_Loading'
 	UISystem->ShowMediaUI("/Game/UI/LoginWidgets/WB_Start.WB_Start_C");
 	if (UISystem->MediaWidget != nullptr) {
 		/**delegate4 绑定事件 然后觉得方法 */

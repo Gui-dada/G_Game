@@ -14,18 +14,6 @@ UCLASS()
 class UNREALGAMEDEMO_API AG_GameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
-	
 
-//public:
-//	virtual void BeginPlay() override;
-//
-//public:
-//	AG_GameModeBase();
-//
-//	/// ~ AGameModeBase interface
-//	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)override;
-//
-//protected:
-//	void HanlePlayerLogin();
 	
 };
