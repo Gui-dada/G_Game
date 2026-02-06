@@ -29,9 +29,10 @@ private:
 	bool SendLoginRequest(const FString& Username, const FString& Password, APlayerController* PlayerController);
 
 	void SaveLoginDataToConfig(const FString& Token, const FString& UserId, const FString& Username);
-
+	UFUNCTION(BlueprintCallable, Category = "Network|Login")
 	void NotifyLoginSuccess(const FString& Token, const FString& UserId,
 		const FString& Username, APlayerController* PlayerController);
+	UFUNCTION(BlueprintCallable, Category = "Network|Login")
 	void NotifyLoginFailed(const FString& ErrorMessage, APlayerController* PlayerController);
 
 	// 清除无效的登录数据

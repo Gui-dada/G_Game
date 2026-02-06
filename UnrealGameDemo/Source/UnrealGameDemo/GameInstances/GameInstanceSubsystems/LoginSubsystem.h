@@ -83,6 +83,9 @@ public:
     
     UFUNCTION(BlueprintCallable, Category = "Login|Status")
     FString GetCurrentUserId() const;
+
+    UPROPERTY(BlueprintReadOnly,Category="Login|Status")
+	bool IsValidLogin = false;
     
     // ========== 事件委托 ==========
     
@@ -102,7 +105,8 @@ private:
     void SetLoginState(ELoginState NewState);
     
     // 切换到主菜单
-    void SwitchToMainMenu(APlayerController* PlayerController);
+    UFUNCTION(BlueprintCallable)
+    void SwitchToMainLobby(APlayerController* PlayerController);
     
     // 显示登录加载界面
     void ShowLoginLoading(APlayerController* PlayerController, const FString& Message = TEXT("登录中..."));

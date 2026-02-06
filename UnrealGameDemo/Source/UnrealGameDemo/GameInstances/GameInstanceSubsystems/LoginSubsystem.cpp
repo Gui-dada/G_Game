@@ -35,12 +35,14 @@ void ULoginSubsystem::StartLoginProcess(APlayerController* PlayerController)
 	if (!TryAutoLogin(PlayerController))
 	{
 		// 自动登录失败，显示登录页面加注册界面
-
+		UE_LOG(LogTemp, Log, TEXT("[LoginSubsystem] 自动登录失败"));
+		IsValidLogin = false;
 	}
 	else
 	{
 		// 登陆成功 保存用户信息 显示登陆页面
-
+		UE_LOG(LogTemp, Log, TEXT("[LoginSubsystem] 自动登录成功"));
+		IsValidLogin = true;
 	}
 
 }
@@ -61,13 +63,17 @@ bool ULoginSubsystem::TryAutoLogin(APlayerController* PlayerController)
 		return false;
 	}
 
+	UNetworkClientSubsystem* NetworkSystem = GetNetworkSubsystem();
+	if (!NetworkSystem) {
+		UE_LOG(LogTemp, Error, TEXT("[LoginSubsystem] 无法获取NetworkClientSubsystem"));
+	}
 	if (ConfigSystem->HasValidLoginData())
 	{
 		FString Username = ConfigSystem->GetCurrentUsername();
 		UE_LOG(LogTemp, Log, TEXT("[LoginSubsystem] 检测到有效登录数据: %s"), *Username);
 
 		// 模拟网络验证延迟（实际应该调用网络验证）
-
+		//NetworkSystem->StartLoginRequest(ConfigSystem->GetCurrentUsername(),ConfigSystem->)
 
 		return true;
 	}
@@ -159,7 +165,7 @@ void ULoginSubsystem::OnLoginSuccess(const FString& Token, const FString& UserId
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this, PlayerController, Username]()
 		{
-			SwitchToMainMenu(PlayerController);
+			SwitchToMainLobby(PlayerController);
 
 			// 广播成功事件
 			OnLoginSuccessDelegate.Broadcast(Username);
@@ -255,14 +261,14 @@ void ULoginSubsystem::SetLoginState(ELoginState NewState)
 	}
 }
 
-void ULoginSubsystem::SwitchToMainMenu(APlayerController* PlayerController)
+void ULoginSubsystem::SwitchToMainLobby(APlayerController* PlayerController)
 {
 	if (!PlayerController) return;
 
 	UE_LOG(LogTemp, Log, TEXT("[LoginSubsystem] 切换到主菜单"));
 
 	// 跳转到主菜单关卡
-	UGameplayStatics::OpenLevel(PlayerController, TEXT("MainMenuMap"));
+	UGameplayStatics::OpenLevel(PlayerController, TEXT("LobbyMap"));
 }
 
 void ULoginSubsystem::ShowLoginLoading(APlayerController* PlayerController, const FString& Message)
